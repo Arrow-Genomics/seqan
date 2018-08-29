@@ -234,6 +234,22 @@ readHeader(BamHeader & header,
     }
 }
 
+/*template <typename TForwardIter, typename TNameStore, typename TNameStoreCache, typename TStorageSpec>
+inline void
+readAlignment(BamAlignment & alignment,
+           BamIOContext<TNameStore, TNameStoreCache, TStorageSpec> & context,
+           TForwardIter & iter,
+           Sam const & )
+{
+    BamAlignment record;
+    while (!nextIs(iter, SamHeader()))//while (nextIs(iter, SamHeader()))
+    {
+        clear(record);
+        readRecord(record, context, iter, tag);
+        appendValue(alignment, record);
+    }
+}*/
+
 // ----------------------------------------------------------------------------
 // Function _readBamRecord()
 // ----------------------------------------------------------------------------
