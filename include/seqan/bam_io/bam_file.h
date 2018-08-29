@@ -43,6 +43,7 @@ namespace seqan {
 // Typedefs
 // ============================================================================
 
+
 // ----------------------------------------------------------------------------
 // Type BamFileIn
 // ----------------------------------------------------------------------------
@@ -96,7 +97,7 @@ typedef FormattedFile<Bam, Input> BamFileIn;
  */
 
 typedef FormattedFile<Bam, Output> BamFileOut;
-
+BamAlignment  alignment;
 // ============================================================================
 // Metafunctions
 // ============================================================================
@@ -178,6 +179,47 @@ readHeader(BamHeader & header, FormattedFile<Bam, Input, TSpec> & file)
 {
     readHeader(header, context(file), file.iter, file.format);
 }
+///////////////////////////////////////////////////////////////////////////////
+
+// ----------------------------------------------------------------------------
+// Function readAlignment(); BamAlignemnt
+// ----------------------------------------------------------------------------
+
+// support for dynamically chosen file formats
+/*template <typename TForwardIter, typename TNameStore, typename TNameStoreCache, typename TStorageSpec>
+inline void
+readAlignment(BamAlignment & ,
+           BamIOContext<TNameStore, TNameStoreCache, TStorageSpec> & ,
+           TForwardIter & ,
+           TagSelector<> const & )
+{
+    SEQAN_FAIL("BamFileIn: File format not specified.");
+}
+
+template <typename TForwardIter, typename TNameStore, typename TNameStoreCache, typename TStorageSpec, typename TTagList>
+inline void
+readAlignment(BamAlignment & alignment,
+           BamIOContext<TNameStore, TNameStoreCache, TStorageSpec> & context,
+           TForwardIter & iter,
+           TagSelector<TTagList> const & format)
+{
+    typedef typename TTagList::Type TFormat;
+
+    if (isEqual(format, TFormat()))
+        readAlignment(alignment, context, iter, TFormat());
+    else
+        readAlignment(alignment, context, iter, static_cast<typename TagSelector<TTagList>::Base const &>(format));
+}
+
+// convenient BamFile variant
+template <typename TSpec>
+inline void
+readAlignment(BamAlignment & alignment, FormattedFile<Bam, Input, TSpec> & file)
+{
+    readAlignment(alignment, context(file), file.iter, file.format);
+}*/
+
+
 
 // ----------------------------------------------------------------------------
 // Function readRecord(); BamAlignmentRecord
@@ -237,9 +279,17 @@ readRecord(BamAlignmentRecord & record,
 template <typename TSpec>
 inline void
 readRecord(BamAlignmentRecord & record, FormattedFile<Bam, Input, TSpec> & file)
-{
-    readRecord(record, context(file), file.iter, file.format);
+{   
+    while (!atEnd(file))
+        {
+	  clear(record);
+	  readRecord(record, context(file), file.iter, file.format);
+	  appendValue(alignment, record);
+	}
 }
+
+////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////
 
 template <typename TRecords, typename TSpec, typename TSize>
 inline SEQAN_FUNC_ENABLE_IF(And<IsSameType<typename Value<TRecords>::Type, BamAlignmentRecord>,
@@ -336,7 +386,7 @@ write(TTarget & target,
 template <typename TSpec>
 inline void
 writeRecord(FormattedFile<Bam, Output, TSpec> & file, BamAlignmentRecord const & record)
-{
+{   //for (int i = 0; i < 6; ++i)
     write(file.iter, record, context(file), file.format);
 }
 
@@ -357,6 +407,94 @@ writeRecords(FormattedFile<Bam, Output, TSpec> & file, TRecords const & records)
     for (int i = 0; i < (int)length(records); ++i)
         write(file.iter, buffers[i]);
 }
+
+
+template <typename TTarget, typename TNameStore, typename TNameStoreCache, typename TStorageSpec>
+inline void write(TTarget & target,
+                  BamAlignmentRecord const & record,
+                  BamIOContext<TNameStore, TNameStoreCache, TStorageSpec> const & context,
+                  Sam const & /*tag*/)
+{
+
+for (int i = 0; i < length(alignment); ++i)
+  {
+    BamAlignmentRecord const & align = alignment[i];
+
+    write(target, align.qName);
+    writeValue(target, '\t');
+
+    appendNumber(target, align.flag);
+    writeValue(target, '\t');
+
+    if (align.rID == BamAlignmentRecord::INVALID_REFID)
+        writeValue(target, '*');
+    else
+        write(target, contigNames(context)[align.rID]);
+
+    writeValue(target, '\t');
+
+    SEQAN_ASSERT_EQ((int32_t)BamAlignmentRecord::INVALID_POS + 1, (int32_t)0);
+    appendNumber(target, align.beginPos + 1);
+
+    writeValue(target, '\t');
+
+    appendNumber(target, static_cast<uint16_t>(align.mapQ));
+    writeValue(target, '\t');
+
+    if (empty(align.cigar))
+        writeValue(target, '*');
+    else
+        for (unsigned i = 0; i < length(align.cigar); ++i)
+        {
+            appendNumber(target, align.cigar[i].count);
+            writeValue(target, align.cigar[i].operation);
+        }
+
+    writeValue(target, '\t');
+
+    if (align.rNextId == BamAlignmentRecord::INVALID_REFID)
+        writeValue(target, '*');
+    else if (align.rID == align.rNextId)
+        writeValue(target, '=');
+    else
+        write(target, contigNames(context)[align.rNextId]);
+
+    writeValue(target, '\t');
+
+    appendNumber(target, align.pNext + 1);
+
+    writeValue(target, '\t');
+
+    if (align.tLen == BamAlignmentRecord::INVALID_LEN)
+        writeValue(target, '0');
+    else
+        appendNumber(target, align.tLen);
+
+    writeValue(target, '\t');
+
+    if (empty(align.seq))
+        writeValue(target, '*');  // Case of empty seq string / "*".
+    else
+        write(target, align.seq);
+
+    writeValue(target, '\t');
+
+
+    if (empty(align.qual))  // Case of empty quality string / "*".
+        writeValue(target, '*');
+    else
+        write(target, align.qual);
+
+    if (!empty(align.tags))
+    {
+        writeValue(target, '\t');
+        appendTagsBamToSam(target, align.tags);
+    }
+
+    writeValue(target, '\n');
+  }
+}
+
 
 }  // namespace seqan
 
