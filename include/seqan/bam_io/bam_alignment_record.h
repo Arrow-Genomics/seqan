@@ -257,6 +257,7 @@ public:
     BamAlignmentRecord() : _qID(std::numeric_limits<unsigned>::max()) { clear(*this); }
 };
 
+typedef String<BamAlignmentRecord> BamAlignment;
 // ============================================================================
 // Functions
 // ============================================================================
