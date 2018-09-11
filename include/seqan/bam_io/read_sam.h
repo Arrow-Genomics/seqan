@@ -406,8 +406,9 @@ readRecord(BamAlignmentRecord & record,
 
     // TAGS
     clear(buffer);
-    readLine(buffer, iter);
-    appendTagsSamToBam(record.tags, buffer);
+    //readLine(buffer, iter); //TODO
+readLine(record.tags, iter);
+    //appendTagsSamToBam(record.tags, buffer);
 }
 
 }  // namespace seqan
