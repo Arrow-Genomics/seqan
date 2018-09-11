@@ -488,7 +488,8 @@ for (int i = 0; i < length(alignment); ++i)
     if (!empty(align.tags))
     {
         writeValue(target, '\t');
-        appendTagsBamToSam(target, align.tags);
+        //appendTagsBamToSam(target, align.tags); //TODO
+write(target, align.tags);
     }
 
     writeValue(target, '\n');
